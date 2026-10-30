@@ -1,0 +1,40 @@
+name: Build and test Qt desktop
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build and desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0
+      - name: Install the verified Qt version
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          modules: 'qtlocation qtpositioning'
+          cache: true
+      - name: Configure
+        run: cmake -S . -B build/linux-release -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build/linux-release --parallel 2
+      - name: Test core behavior and headless Qt startup
+        run: ctest --test-dir build/linux-release --output-on-failure
+      - name: Export a clean source snapshot
+        run: python3 scripts/package-source.py
+      - name: Preserve the source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2v-clean-source
+          path: build/distribution/v2v-source.zip

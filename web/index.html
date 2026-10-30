@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Projet personnel C++ / Qt6 : mobilité sur un réseau OpenStreetMap et visualisation d'un graphe de portée V2V. Application Linux et sources téléchargeables.">
+  <meta name="theme-color" content="#f5f4ee">
+  <title>V2V Traffic Simulation — Mobilité & connectivité</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+  <header class="navigation wrap">
+    <a class="brand" href="#" aria-label="V2V Traffic Simulation, accueil"><span class="brand-mark" aria-hidden="true">V<span>2</span>V</span><span>TRAFFIC<br>SIMULATION</span></a>
+    <nav aria-label="Navigation principale"><a href="#apercu">Le projet</a><a href="#architecture">Architecture</a><a href="#telecharger">Téléchargements <span aria-hidden="true">↗</span></a></nav>
+  </header>
+
+  <main id="contenu">
+    <section class="hero wrap">
+      <div class="eyebrow"><span class="dot"></span> PROJET PERSONNEL <span class="separator">/</span> C++ · QT6 · OPENSTREETMAP</div>
+      <h1>La route en mouvement.<br>Le réseau <em>en vue.</em></h1>
+      <div class="hero-bottom"><p>Observer comment la mobilité transforme les connexions entre véhicules. Un prototype de bureau qui relie un réseau routier réel à un graphe de portée V2V.</p><div class="hero-actions"><a class="button primary" href="#telecharger">Découvrir l'application <span aria-hidden="true">↓</span></a><span class="small-note">Application Qt de bureau · Linux x86_64</span></div></div>
+      <div class="specs" aria-label="Caractéristiques du modèle"><span><b>01</b> réseau routier OSM</span><span><b>02</b> graphes complémentaires</span><span><b>100–500 m</b> rayon simulé</span><span class="prototype-label">PROTOTYPE EXÉCUTABLE</span></div>
+    </section>
+
+    <section id="apercu" class="preview-section wrap">
+      <figure class="application-preview"><div class="window-heading"><span><i></i><i></i><i></i></span><span>V2V TRAFFIC SIMULATION / QT QUICK</span><span>CAPTURE RÉELLE</span></div><img src="assets/interface-qt6-qml.png" width="1400" height="900" alt="Interface réelle Qt6 : 100 véhicules sur la carte OSM de Bourtzwiller, avec cercles de portée, liens et statistiques." fetchpriority="high"><figcaption><span>Bourtzwiller, Mulhouse · 100 véhicules · Qt 6.8.3</span><span>Exécution locale du 30 octobre 2026</span></figcaption></figure>
+    </section>
+
+    <section class="explore wrap">
+      <div class="section-heading"><span class="eyebrow">MOBILITÉ → CONNECTIVITÉ</span><h2>Une scène réelle.<br>Un modèle explicite.</h2><p>Le réseau routier vient d'OpenStreetMap. Les trajectoires et les portées sont simulées. Cette distinction guide toute la présentation du projet.</p></div>
+      <div class="feature-list">
+        <article><span class="feature-number">01 /</span><div><h3>Construire le réseau</h3><p>Lecture d'un extrait OSM, filtrage des routes et construction d'un graphe orienté. Une carte de démonstration légère est embarquée dans l'application.</p><span class="code-tag">RoadGraph · Node · Edge</span></div></article>
+        <article><span class="feature-number">02 /</span><div><h3>Mettre les véhicules en mouvement</h3><p>Points de création pondérés, parcours aléatoires et positions interpolées. L'interface permet de démarrer, mettre en pause et modifier la population.</p><span class="code-tag">TrafficSimulation · Vehicle</span></div></article>
+        <article><span class="feature-number">03 /</span><div><h3>Visualiser les liens de portée</h3><p>Les distances et les rayons déterminent les liens affichés. Cercles, couleurs et degrés rendent le graphe observable pendant la simulation.</p><span class="code-tag">InterferenceGraph · Qt Quick</span></div></article>
+      </div>
+    </section>
+
+    <section id="architecture" class="architecture-section">
+      <div class="wrap"><div class="architecture-title"><span class="eyebrow">UNE APPLICATION, UN PROCESSUS</span><h2>Du fichier OSM<br>à l'interface Qt.</h2></div><div class="architecture-flow" aria-label="Architecture du projet"><div><span>DONNÉES</span><strong>OpenStreetMap</strong><small>Extrait routier local</small></div><span class="flow-arrow" aria-hidden="true">→</span><div><span>MOTEUR C++</span><strong>Mobilité & portée</strong><small>Graphes · véhicules · timer</small></div><span class="flow-arrow" aria-hidden="true">→</span><div><span>MODÈLES QT / QML</span><strong>Interface interactive</strong><small>Carte · contrôles · statistiques</small></div></div><p class="architecture-caption">Le fond cartographique est fourni séparément par Qt Location. Les composants échangent via les propriétés, signaux et modèles Qt.</p></div>
+    </section>
+
+    <section id="telecharger" class="downloads wrap">
+      <div class="download-intro"><span class="eyebrow">EXPLORER PAR SOI-MÊME</span><h2>Le prototype,<br>sur votre bureau.</h2><p>La démonstration routière est incluse. Les dépendances Qt sont dans le paquet binaire, séparées de l'archive de sources.</p></div>
+      <div class="download-options">
+        <article class="download-row"><div><span class="download-type">APPLICATION</span><h3>Linux x86_64</h3><p>Qt 6.8.3 inclus · paquet vérifié sur Ubuntu 24.04</p></div><a class="download-link" href="downloads/v2v-linux-x86_64.tar.xz" download>Télécharger <span aria-hidden="true">↘</span></a></article>
+        <article class="download-row"><div><span class="download-type">CODE SOURCE</span><h3>Archive propre</h3><p>C++, QML, CMake, tests et petite carte OSM. Sans SDK ni historique Git.</p></div><a class="download-link" href="downloads/v2v-source.zip" download>Explorer les sources <span aria-hidden="true">↘</span></a></article>
+        <a class="checksum-link" href="downloads/SHA256SUMS">Consulter les empreintes SHA-256 des téléchargements ↗</a>
+        <a class="checksum-link" href="https://github.com/arabat-med/v2v-traffic-simulation">Consulter le dépôt personnel sur GitHub ↗</a>
+      </div>
+      <div class="terminal"><div class="terminal-label"><span>LANCEMENT LINUX</span><span>DEPUIS LE DOSSIER EXTRAIT</span></div><pre><code>tar -xJf v2v-linux-x86_64.tar.xz
+cd v2v-traffic-simulation-linux-x86_64
+./bin/appfinalproduct</code></pre><p>Une session graphique est nécessaire. Le fond de carte utilise Internet ; le réseau routier de démonstration est embarqué. Les versions Windows et macOS ne sont pas distribuées ici.</p></div>
+    </section>
+
+    <section class="scope-section wrap">
+      <div><span class="eyebrow">UN PÉRIMÈTRE CLAIR</span><h2>Ce que cette<br>version explore.</h2></div>
+      <div class="scope-content"><p class="scope-lead">Un outil de visualisation de la mobilité et de la proximité entre véhicules.</p><ul><li>Les liens représentent une portée géométrique, sans échange de paquets, mesure radio ou protocole V2V.</li><li>La mobilité est simplifiée : parcours aléatoires, sans feux, collisions ou suivi du véhicule précédent.</li><li>La préférence de zone et le rafraîchissement du graphe restent partiels ; les limites sont détaillées dans le README.</li></ul><div class="vision-note"><span class="status-label">EXTENSION FUTURE</span><h3>Computer Vision</h3><p>Aucun pipeline de vision n'est implémenté dans cette version. YOLO, ByteTrack, OpenCV, FastAPI, Docker et MLflow ne font pas partie de la stack livrée.</p></div></div>
+    </section>
+  </main>
+  <footer class="wrap"><div><span class="footer-brand">V2V Traffic Simulation</span><p>Projet personnel · C++ / Qt6 / QML</p></div><a href="mailto:moarabat131@gmail.com">Parlons du projet <span aria-hidden="true">↗</span><small>moarabat131@gmail.com</small></a><div class="footer-bottom"><span>Prototype 0.1.0 · Capture et tests locaux vérifiés</span><span>Données © OpenStreetMap et ses contributeurs · ODbL</span><span>Licence de réutilisation du code à définir</span></div></footer>
+</body>
+</html>

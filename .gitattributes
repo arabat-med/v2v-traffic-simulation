@@ -1,0 +1,17 @@
+* text=auto
+*.cpp text eol=lf
+*.h text eol=lf
+*.qml text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.py text eol=lf
+*.osm text eol=lf
+*.png binary
+
+/build export-ignore
+/.qtcreator export-ignore
+/.vscode export-ignore
+/.sites export-ignore
+/map.osm export-ignore
+/map2.osm export-ignore
+/map_large.osm export-ignore
