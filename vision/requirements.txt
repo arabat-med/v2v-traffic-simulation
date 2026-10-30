@@ -1,0 +1,7 @@
+# Install the CPU PyTorch wheels first (see README.md) to avoid CUDA downloads.
+torch==2.10.0
+torchvision==0.25.0
+ultralytics==8.4.193
+opencv-python==4.11.0.86
+numpy==2.2.6
+lap==0.5.12

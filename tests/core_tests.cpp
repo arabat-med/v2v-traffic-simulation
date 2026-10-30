@@ -1,4 +1,8 @@
 #include <QCoreApplication>
+#include <QEventLoop>
+#include <QFile>
+#include <QTemporaryFile>
+#include <QTimer>
 #include <cmath>
 #include <iostream>
 #include <sstream>
@@ -6,6 +10,7 @@
 #include "roadgraph.h"
 #include "vehicle.h"
 #include "interferencegraph.h"
+#include "trafficsimulation.h"
 
 static void require(bool condition, const char* message)
 {
@@ -16,7 +21,7 @@ int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
     try {
-        require(argc == 2, "demo path is required");
+        require(argc == 3, "demo and synthetic trajectory fixture paths are required");
         RoadGraph demo;
         require(demo.loadFromOSM(std::string(argv[1])), "real demo map must load");
         require(demo.getNodes().size() == 1887, "demo road node count changed");
@@ -58,6 +63,31 @@ int main(int argc, char** argv)
         require(graph.edgeCount() == 0, "out-of-range vehicles must not connect");
         graph.updateGraph({});
         require(graph.nodeCount() == 0 && graph.edgeCount() == 0 && graph.averageDegree() == 0.0, "empty graph must reset statistics");
+
+        QString replayError;
+        TrajectoryReplay replay;
+        require(replay.load(QString::fromLocal8Bit(argv[2]), replayError), "synthetic replay fixture must load");
+        require(replay.synthetic && replay.frames.size() == 3 && replay.frames[1].vehicles.empty(), "preserve synthetic status and empty frames");
+        require(replay.frameAt(0.05) == 0 && replay.frameAt(0.1) == 1 && replay.frameAt(5.0) == 2, "timestamp selection must include empty and final frames");
+        QTemporaryFile invalid;
+        require(invalid.open(), "temporary file must open");
+        invalid.write("{\"type\":\"v2v_detections\",\"schema_version\":1}\n"); invalid.flush();
+        require(!replay.load(invalid.fileName(), replayError) && replay.frames.size() == 3, "reject uncalibrated detections without losing the previous replay");
+
+        TrafficSimulation simulation(&road);
+        require(simulation.loadTrajectories(QUrl::fromLocalFile(QString::fromLocal8Bit(argv[2]))), "simulation must import calibrated trajectories");
+        require(simulation.replayMode() && simulation.vehicleCount() == 2 && simulation.interferenceGraph()->edgeCount() == 1, "import must feed the existing Qt model and geometric range graph");
+        simulation.setVehicleCount(100);
+        require(simulation.vehicleCount() == 2, "random population controls must not alter observations");
+        simulation.start();
+        QEventLoop loop;
+        QTimer::singleShot(350, &loop, &QEventLoop::quit); loop.exec();
+        require(!simulation.isRunning() && simulation.vehicleCount() == 1, "playback must use elapsed time and stop at the final observed frame");
+        require(simulation.interferenceGraph()->nodeCount() == 1 && simulation.interferenceGraph()->edgeCount() == 0, "departed detections must leave the graph");
+        simulation.reset();
+        require(simulation.vehicleCount() == 2 && simulation.replayTime() == 0, "reset must rewind the observation sequence");
+        simulation.useSimulation();
+        require(!simulation.replayMode() && simulation.vehicleCount() == 20, "random simulation must remain available after replay");
         std::cout << "CORE_TESTS_OK: OSM loading, directed roads, movement and range graph" << std::endl;
         return 0;
     } catch (const std::exception& error) {

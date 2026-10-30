@@ -11,16 +11,22 @@ from zipfile import ZIP_DEFLATED, ZipFile
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = [
     "CMakeLists.txt", "README.md", "THIRD_PARTY_NOTICES.md", ".gitignore", ".gitattributes",
-    "main.cpp", "Main.qml",
+    "main.cpp", "Main.qml", "CalibrationDialog.qml",
     *[f"{module}.{extension}" for module in (
         "roadgraph", "node", "edge", "vehicle", "trafficsimulation",
-        "roadgraphmodel", "vehiclemodel", "interferencegraph",
+        "roadgraphmodel", "vehiclemodel", "interferencegraph", "trajectoryreplay", "calibrationwriter",
     ) for extension in ("h", "cpp")],
     "data/demo.osm", "data/README.md", "tests/core_tests.cpp",
     "scripts/package-source.py", ".github/workflows/ci.yml",
     "docs/images/README.md", "docs/images/01-interface-qt6-qml.png",
+    "tests/fixtures/synthetic-trajectories.jsonl",
+    *[f"map-providers/{name}" for name in ("street", "satellite", "terrain", "cycle", "transit", "night-transit", "hiking", "README.md")],
+    "vision/__init__.py", "vision/__main__.py", "vision/calibration.py", "vision/pipeline.py",
+    "vision/requirements.txt", "vision/README.md", "vision/tests/test_calibration.py",
+    "docs/validation/vision.json",
 ]
-OPTIONAL = ["web/index.html", "web/styles.css", "web/vercel.json", "web/assets/interface-qt6-qml.png"]
+OPTIONAL = ["web/index.html", "web/styles.css", "web/vercel.json", "web/assets/interface-qt6-qml.png",
+            "docs/images/02-vue-aerienne-ign.png", "docs/images/03-satellite-sentinel2.png"]
 
 
 def main():

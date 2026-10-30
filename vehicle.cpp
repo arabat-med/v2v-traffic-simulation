@@ -6,7 +6,7 @@
 Vehicle::Vehicle(long long id, Node* startNode)
     : id(id), currentNode(startNode), targetNode(nullptr),
     currentEdge(nullptr), progress(0.0), speed(0.0),
-    currentLat(startNode->lat), currentLon(startNode->lon),
+    currentLat(startNode ? startNode->lat : 0.0), currentLon(startNode ? startNode->lon : 0.0),
     pathIndex(0), preferredZone("")
 {
     static std::random_device rd;

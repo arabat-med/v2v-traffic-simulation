@@ -1,0 +1,4 @@
+{"type":"v2v_trajectories","schema_version":1,"coordinate_system":"WGS84","position_source":"camera_homography","calibration_status":"synthetic_test","transmission_radius_m":200,"note":"Synthetic software test, not a real camera recording."}
+{"time_s":0.0,"vehicles":[{"id":1,"lat":47.772,"lon":7.310,"speed_mps":5.0},{"id":2,"lat":47.7721,"lon":7.310,"speed_mps":0.0}]}
+{"time_s":0.1,"vehicles":[]}
+{"time_s":0.2,"vehicles":[{"id":2,"lat":47.7722,"lon":7.310,"speed_mps":3.0}]}

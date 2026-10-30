@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(finalproduct VERSION 0.1.0 LANGUAGES CXX)
+project(finalproduct VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,17 +18,21 @@ set(V2V_CORE_SOURCES
     roadgraphmodel.h roadgraphmodel.cpp
     vehiclemodel.h vehiclemodel.cpp
     interferencegraph.h interferencegraph.cpp
+    trajectoryreplay.h trajectoryreplay.cpp
+    calibrationwriter.h calibrationwriter.cpp
 )
 
 qt_add_executable(appfinalproduct main.cpp ${V2V_CORE_SOURCES})
 qt_add_qml_module(appfinalproduct
     URI finalproduct
     VERSION 1.0
-    QML_FILES Main.qml
+    QML_FILES Main.qml CalibrationDialog.qml
 )
 qt_add_resources(appfinalproduct demo_map
     PREFIX "/"
     FILES data/demo.osm
+        map-providers/street map-providers/satellite map-providers/terrain
+        map-providers/cycle map-providers/transit map-providers/night-transit map-providers/hiking
 )
 target_link_libraries(appfinalproduct PRIVATE
     Qt6::Quick Qt6::QuickControls2 Qt6::Location Qt6::Positioning
@@ -45,9 +49,12 @@ if(BUILD_TESTING)
     add_executable(simulation_core_tests tests/core_tests.cpp ${V2V_CORE_SOURCES})
     target_include_directories(simulation_core_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_link_libraries(simulation_core_tests PRIVATE Qt6::Core)
-    add_test(NAME simulation_core COMMAND simulation_core_tests ${CMAKE_CURRENT_SOURCE_DIR}/data/demo.osm)
+    add_test(NAME simulation_core COMMAND simulation_core_tests ${CMAKE_CURRENT_SOURCE_DIR}/data/demo.osm ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/synthetic-trajectories.jsonl)
     add_test(NAME application_smoke COMMAND appfinalproduct --smoke-test)
-    set_tests_properties(application_smoke PROPERTIES
+    add_test(NAME application_aerial_smoke COMMAND appfinalproduct --smoke-test --basemap aerial)
+    add_test(NAME application_satellite_smoke COMMAND appfinalproduct --smoke-test --basemap satellite)
+    add_test(NAME application_video_replay_smoke COMMAND appfinalproduct --smoke-test --tracks ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/synthetic-trajectories.jsonl)
+    set_tests_properties(application_smoke application_aerial_smoke application_satellite_smoke application_video_replay_smoke PROPERTIES
         TIMEOUT 20
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QML_DISABLE_DISK_CACHE=1"
     )
@@ -83,6 +90,10 @@ if(V2V_BUNDLE_QT)
 endif()
 install(FILES README.md THIRD_PARTY_NOTICES.md DESTINATION ${CMAKE_INSTALL_DOCDIR})
 install(FILES data/README.md DESTINATION ${CMAKE_INSTALL_DOCDIR} RENAME DATA.md)
+install(FILES data/README.md DESTINATION ${CMAKE_INSTALL_DOCDIR}/data)
+install(FILES vision/README.md DESTINATION ${CMAKE_INSTALL_DOCDIR}/vision)
+install(FILES map-providers/README.md DESTINATION ${CMAKE_INSTALL_DOCDIR}/map-providers)
+install(DIRECTORY docs/images DESTINATION ${CMAKE_INSTALL_DOCDIR}/docs FILES_MATCHING PATTERN "*.md" PATTERN "*.png")
 
 set(CPACK_PACKAGE_NAME "v2v-traffic-simulation")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})

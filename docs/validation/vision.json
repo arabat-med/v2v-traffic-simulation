@@ -1,0 +1,17 @@
+{
+  "description": "Real vehicle inference; synthetic geographic references only. Not a performance or GPS-accuracy benchmark.",
+  "source_video_url": "https://github.com/ultralytics/assets/releases/download/v0.0.0/anpr-demo-video.mp4",
+  "source_video_sha256": "82d3a2f8a8f02f86906aaed6d097346a66cc924b0ffb591a76f0e7a5bfb4f853",
+  "model_url": "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo11n.pt",
+  "model_sha256": "0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1",
+  "frames_processed": 30,
+  "source_fps": 29.97002997002997,
+  "detections": 200,
+  "unique_track_ids": 9,
+  "georeferenced_observations": 200,
+  "calibration_status": "synthetic_test",
+  "ultralytics_version": "8.4.193",
+  "tracker": "ByteTrack",
+  "real_camera_calibration_validated": false,
+  "test_video_redistributed": false
+}

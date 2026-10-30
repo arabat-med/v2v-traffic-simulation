@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <random>
 #include <iostream>
+#include <unordered_map>
 
 TrafficSimulation::TrafficSimulation(RoadGraph* graph, QObject *parent)
     : QObject(parent), m_graph(graph), m_running(false),
@@ -42,6 +43,8 @@ TrafficSimulation::~TrafficSimulation()
 void TrafficSimulation::start()
 {
     if (!m_running) {
+        if (m_replayMode && m_replayTime >= replayDuration()) reset();
+        m_replayClock.start();
         m_running = true;
         int interval = 16;
         if (m_vehicles.size() > 1000) interval = 33;
@@ -69,8 +72,16 @@ void TrafficSimulation::pause()
 void TrafficSimulation::reset()
 {
     pause();
+    if (m_replayMode) {
+        m_replayTime = 0;
+        m_replayFrame = -1;
+        applyReplayFrame(0);
+        emit replayTimeChanged();
+        return;
+    }
     clearVehicles();
     initializeVehicles(20);
+    m_interferenceGraph.updateGraph(m_vehicles);
     emit vehicleCountChanged();
 }
 
@@ -84,12 +95,14 @@ void TrafficSimulation::setTimeSpeed(double speed)
 
 void TrafficSimulation::addVehicles(int count)
 {
+    if (m_replayMode) return;
     initializeVehicles(count);
     emit vehicleCountChanged();
 }
 
 void TrafficSimulation::setVehicleCount(int count)
 {
+    if (m_replayMode) return;
     if (count < 0) count = 0;
     if (count > 2000) count = 2000;
 
@@ -122,6 +135,13 @@ void TrafficSimulation::setVehicleCount(int count)
 void TrafficSimulation::updateSimulation()
 {
     if (!m_running) return;
+    if (m_replayMode) {
+        m_replayTime = std::min(replayDuration(), m_replayTime + m_replayClock.restart() / 1000.0 * m_timeSpeed);
+        applyReplayFrame(m_replay.frameAt(m_replayTime));
+        emit replayTimeChanged();
+        if (m_replayTime >= replayDuration()) pause();
+        return;
+    }
 
     double deltaTime = 0.016 * m_timeSpeed;
 
@@ -290,4 +310,62 @@ void TrafficSimulation::clearVehicles()
     m_vehicles.clear();
     m_vehicleModel.setVehicles(m_vehicles);
     m_nextVehicleId = 1;
+}
+
+bool TrafficSimulation::loadTrajectories(const QUrl& file)
+{
+    if (!file.isLocalFile() || !m_replay.load(file.toLocalFile(), m_sourceError)) {
+        if (!file.isLocalFile()) m_sourceError = "Choisir un fichier local trajectories.jsonl.";
+        emit sourceErrorChanged();
+        return false;
+    }
+    pause();
+    clearVehicles();
+    m_replayMode = true;
+    m_replayTime = 0;
+    m_replayFrame = -1;
+    applyReplayFrame(0);
+    emit sourceChanged(); emit sourceErrorChanged(); emit replayTimeChanged();
+    return true;
+}
+
+void TrafficSimulation::useSimulation()
+{
+    if (!m_replayMode) return;
+    pause(); clearVehicles();
+    m_replayMode = false;
+    m_replay = TrajectoryReplay{};
+    m_sourceError.clear();
+    m_replayTime = 0; m_replayFrame = -1;
+    initializeVehicles(20);
+    m_interferenceGraph.updateGraph(m_vehicles);
+    emit vehicleCountChanged(); emit sourceChanged(); emit sourceErrorChanged(); emit replayTimeChanged();
+}
+
+void TrafficSimulation::applyReplayFrame(int index)
+{
+    if (index == m_replayFrame) return;
+    const auto& frame = m_replay.frames.at(index);
+    std::unordered_map<long long, Vehicle*> previous;
+    for (auto* vehicle : m_vehicles) previous[vehicle->id] = vehicle;
+    std::vector<Vehicle*> next;
+    for (const auto& observation : frame.vehicles) {
+        auto found = previous.find(observation.id);
+        auto* vehicle = found == previous.end() ? new Vehicle(observation.id, nullptr) : found->second;
+        if (found != previous.end()) previous.erase(found);
+        vehicle->currentLat = observation.lat;
+        vehicle->currentLon = observation.lon;
+        vehicle->speed = observation.speed;
+        vehicle->transmissionRadius = m_replay.radius;
+        next.push_back(vehicle);
+    }
+    const bool changed = next != m_vehicles;
+    // Reset the model before releasing departed vehicles; views never retain dangling pointers.
+    m_vehicles = std::move(next);
+    if (changed) m_vehicleModel.setVehicles(m_vehicles);
+    else m_vehicleModel.updatePositions();
+    for (const auto& pair : previous) delete pair.second;
+    m_interferenceGraph.updateGraph(m_vehicles);
+    m_replayFrame = index;
+    if (changed) emit vehicleCountChanged();
 }

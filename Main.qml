@@ -1,43 +1,99 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import QtLocation
 import QtPositioning
 
 ApplicationWindow {
+    id: window
     visible: true
     width: 1400
     height: 900
     title: typeof windowTitle !== 'undefined' ? windowTitle : "V2V Traffic Simulation"
 
     property bool showCircles: true
+    property int basemapIndex: initialBasemap
+    readonly property var requestedMapStyle: [MapType.StreetMap, MapType.TerrainMap, MapType.SatelliteMapDay][basemapIndex]
+    readonly property bool mapStyleMatchesSelection: map.activeMapType.style === requestedMapStyle
+
+    function selectBasemap() {
+        for (let i = 0; i < map.supportedMapTypes.length; ++i) {
+            if (map.supportedMapTypes[i].style === requestedMapStyle) {
+                map.activeMapType = map.supportedMapTypes[i]
+                map.zoomLevel = Math.min(map.zoomLevel, basemapIndex === 2 ? 14 : 19)
+                return
+            }
+        }
+    }
+    onBasemapIndexChanged: selectBasemap()
+
+    FileDialog {
+        id: tracksDialog
+        title: "Trajectoires d'une vidéo calibrée"
+        nameFilters: ["Trajectoires (*.jsonl)"]
+        onAccepted: trafficSimulation.loadTrajectories(selectedFile)
+    }
+    Connections {
+        target: trafficSimulation
+        function onSourceChanged() {
+            if (trafficSimulation.replayMode) {
+                map.center = QtPositioning.coordinate(trafficSimulation.replayCenterLat, trafficSimulation.replayCenterLon)
+                map.zoomLevel = Math.min(18, basemapIndex === 2 ? 14 : 19)
+            } else {
+                map.center = QtPositioning.coordinate(mapCenterLat, mapCenterLon)
+                map.zoomLevel = mapZoomLevel
+            }
+        }
+    }
 
     Plugin {
         id: mapPlugin
         name: "osm"
         PluginParameter {
             name: "osm.mapping.providersrepository.disabled"
-            value: "true"
+            value: false
         }
         PluginParameter {
             name: "osm.mapping.providersrepository.address"
-            value: ""
+            value: "qrc:/map-providers/"
         }
         PluginParameter {
             name: "osm.useragent"
             value: "V2VTrafficSimulation/1.0"
         }
+        PluginParameter { name: "osm.mapping.prefetching_style"; value: "NoPrefetching" }
     }
 
     Map {
         id: map
+        objectName: "trafficMap"
         anchors.left: sidebar.right
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         plugin: mapPlugin
-        center: QtPositioning.coordinate(mapCenterLat, mapCenterLon)
+        center: trafficSimulation.replayMode
+            ? QtPositioning.coordinate(trafficSimulation.replayCenterLat, trafficSimulation.replayCenterLon)
+            : QtPositioning.coordinate(mapCenterLat, mapCenterLon)
         zoomLevel: mapZoomLevel
-        activeMapType: supportedMapTypes[0]
+        onSupportedMapTypesChanged: Qt.callLater(window.selectBasemap)
+        Component.onCompleted: Qt.callLater(window.selectBasemap)
+
+        TapHandler {
+            enabled: calibrationPanel.visible && calibrationPanel.waitingForMap
+            onTapped: (eventPoint) => calibrationPanel.addCoordinate(map.toCoordinate(eventPoint.position))
+        }
+        MapItemView {
+            model: calibrationPanel.visible ? calibrationPanel.pointModel : null
+            delegate: MapQuickItem {
+                coordinate: QtPositioning.coordinate(gpsLat, gpsLon)
+                anchorPoint.x: 10; anchorPoint.y: 10; z: 2000
+                sourceItem: Rectangle {
+                    width: 20; height: 20; radius: 10; color: "#00d4ff"; border.color: "white"
+                    Text { anchors.centerIn: parent; text: index+1; font.bold: true; color: "#0f172a" }
+                }
+            }
+        }
 
         property var startCentroid
 
@@ -67,7 +123,7 @@ ApplicationWindow {
             onWheel: (event) => {
                 const loc = map.toCoordinate(wheel.point.position)
                 if (event.angleDelta.y > 0) {
-                    map.zoomLevel = Math.min(map.zoomLevel + 0.5, 20)
+                    map.zoomLevel = Math.min(map.zoomLevel + 0.5, window.basemapIndex === 2 ? 14 : 19)
                 } else {
                     map.zoomLevel = Math.max(map.zoomLevel - 0.5, 2)
                 }
@@ -203,7 +259,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: map.zoomLevel = Math.min(map.zoomLevel + 1, 20)
+                onClicked: map.zoomLevel = Math.min(map.zoomLevel + 1, window.basemapIndex === 2 ? 14 : 19)
             }
         }
 
@@ -232,8 +288,10 @@ ApplicationWindow {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    map.center = QtPositioning.coordinate(mapCenterLat, mapCenterLon)
-                    map.zoomLevel = mapZoomLevel
+                    map.center = trafficSimulation.replayMode
+                        ? QtPositioning.coordinate(trafficSimulation.replayCenterLat, trafficSimulation.replayCenterLon)
+                        : QtPositioning.coordinate(mapCenterLat, mapCenterLon)
+                    map.zoomLevel = Math.min(mapZoomLevel, window.basemapIndex === 2 ? 14 : 19)
                 }
             }
         }
@@ -292,6 +350,33 @@ ApplicationWindow {
             Column {
                 width: 260
                 spacing: 15
+
+                Column {
+                    width: parent.width; spacing: 7
+                    Label { text: "FOND DE CARTE RÉEL"; color: "#8a8aaa"; font.bold: true; font.pixelSize: 11 }
+                    ComboBox {
+                        width: parent.width
+                        model: ["Carte routière · OpenStreetMap", "Vue aérienne · IGN (France)", "Satellite · Sentinel-2 (2024)"]
+                        currentIndex: window.basemapIndex
+                        onActivated: window.basemapIndex = currentIndex
+                    }
+                    Label {
+                        width: parent.width; wrapMode: Text.WordWrap; font.pixelSize: 10; color: "#aab6cc"
+                        text: window.basemapIndex === 1 ? "Photographies aériennes IGN. Couverture France. Internet nécessaire."
+                            : window.basemapIndex === 2 ? "Vraies images satellite, mosaïque 2024. Résolution 10 m, zoom limité. Usage personnel / académique."
+                            : "Routes OpenStreetMap. Internet nécessaire pour les tuiles."
+                    }
+                    Button { width: parent.width; text: "Calibrer une caméra…"; onClicked: calibrationPanel.visible = true }
+                    Button { width: parent.width; text: "Importer des trajectoires vidéo…"; onClicked: tracksDialog.open() }
+                    Button { width: parent.width; text: "Revenir à la simulation"; visible: trafficSimulation.replayMode; onClicked: trafficSimulation.useSimulation() }
+                    Label {
+                        width: parent.width; wrapMode: Text.WordWrap; color: "#ffa62b"; font.pixelSize: 11
+                        text: trafficSimulation.replayMode ? (trafficSimulation.syntheticReplay ? "TEST SYNTHÉTIQUE · " : "VIDÉO CALIBRÉE · ")
+                              + trafficSimulation.replayTime.toFixed(1) + " / " + trafficSimulation.replayDuration.toFixed(1) + " s\nPortées V2V simulées : 200 m par défaut."
+                              : "Véhicules simulés sur le réseau OSM."
+                    }
+                    Label { width: parent.width; wrapMode: Text.WordWrap; color: "#ff8888"; text: trafficSimulation.sourceError; visible: text.length > 0 }
+                }
 
                 Row {
                     spacing: 10
@@ -379,6 +464,8 @@ ApplicationWindow {
                             Repeater {
                                 model: [100, 500, 1000, 2000]
                                 Rectangle {
+                                    enabled: !trafficSimulation.replayMode
+                                    opacity: enabled ? 1 : 0.4
                                     width: 50; height: 32; radius: 6
                                     color: trafficSimulation.vehicleCount === modelData ? "#00d4ff" : (vehicleBtnArea.containsMouse ? "#2c3e50" : "#1a1a2e")
                                     border.color: trafficSimulation.vehicleCount === modelData ? "#00d4ff" : "#3a3a4a"
@@ -405,7 +492,7 @@ ApplicationWindow {
 
                 Rectangle {
                     width: parent.width
-                    height: 125
+                    height: 150
                     radius: 10
                     color: "#16213e"
 
@@ -418,7 +505,7 @@ ApplicationWindow {
                             spacing: 8
                             Text { text: "⏱"; font.pixelSize: 14 }
                             Text {
-                                text: "SIMULATION SPEED"
+                                text: trafficSimulation.replayMode ? "PLAYBACK SPEED" : "SIMULATION SPEED"
                                 font.bold: true
                                 font.pixelSize: 11
                                 font.letterSpacing: 1
@@ -436,6 +523,7 @@ ApplicationWindow {
                         Slider {
                             id: speedSlider
                             width: parent.width
+                            height: 24
                             from: 0.1; to: 5.0; stepSize: 0.1
                             value: trafficSimulation.timeSpeed
                             onValueChanged: trafficSimulation.timeSpeed = value
@@ -665,7 +753,7 @@ ApplicationWindow {
                         Row {
                             spacing: 8
                             Text { text: "Radius:"; font.pixelSize: 11; color: "#888" }
-                            Text { text: "100-500m"; font.pixelSize: 11; font.bold: true; color: "#00d4ff" }
+                            Text { text: trafficSimulation.replayMode ? "Portée configurée" : "100-500m"; font.pixelSize: 11; font.bold: true; color: "#00d4ff" }
                         }
                     }
                 }
@@ -685,7 +773,7 @@ ApplicationWindow {
                             spacing: 8
                             Text { text: "🚦"; font.pixelSize: 14 }
                             Text {
-                                text: "SPEED LEGEND"
+                                text: trafficSimulation.replayMode ? "ESTIMATED SPEED" : "SPEED LEGEND"
                                 font.bold: true
                                 font.pixelSize: 11
                                 font.letterSpacing: 1
@@ -718,6 +806,23 @@ ApplicationWindow {
 
                 Item { width: 1; height: 20 }
             }
+        }
+    }
+
+    CalibrationDialog {
+        id: calibrationPanel
+        x: sidebar.width + 12
+        y: 20
+    }
+
+    Rectangle {
+        anchors.left: sidebar.right; anchors.bottom: parent.bottom; anchors.margins: 10
+        width: imageCaption.implicitWidth + 20; height: imageCaption.implicitHeight + 14
+        radius: 5; color: "#dd16213e"; z: 100
+        Label {
+            id: imageCaption; anchors.centerIn: parent; color: "white"; font.pixelSize: 11
+            text: (window.basemapIndex === 1 ? "IGN · Photographies aériennes" : window.basemapIndex === 2 ? "EOxCloudless · Sentinel-2 2024" : "OpenStreetMap")
+                  + " | " + (trafficSimulation.replayMode ? "Trajectoires vidéo · portées simulées" : "Véhicules et portées simulés")
         }
     }
 }

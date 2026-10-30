@@ -1,0 +1,10 @@
+{
+  "Enabled": true,
+  "MinimumZoomLevel": 0,
+  "Timestamp": "2026-10-30T00:00:00",
+  "UrlTemplate": "https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX=%z&TILECOL=%x&TILEROW=%y",
+  "ImageFormat": "jpg",
+  "MapCopyRight": "<a href='https://cartes.gouv.fr'>IGN - Géoplateforme</a>",
+  "DataCopyRight": "BD ORTHO - photographies aériennes",
+  "MaximumZoomLevel": 19
+}

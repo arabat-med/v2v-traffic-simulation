@@ -62,6 +62,20 @@ node_modules/
 .env.*
 !.env.example
 
+# Private videos, camera references, downloaded weights and vision outputs
+/vision-inputs/
+/vision-output/
+/models/
+*.pt
+*.onnx
+*.engine
+*.mp4
+*.avi
+*.mov
+/calibration.json
+/frame.png
+/runs/
+
 # Unused local assets and repository templates, preserved outside the source export
 /icons/
 /.github/CODEOWNERS
